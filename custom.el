@@ -6,13 +6,13 @@
  '(column-number-mode t)
  '(connection-local-criteria-alist
    '(((:application eshell)
-      eshell-connection-default-profile)) t)
+      eshell-connection-default-profile)))
  '(connection-local-profile-alist
    '((eshell-connection-default-profile
-      (eshell-path-env-list))) t)
+      (eshell-path-env-list))))
  '(indent-tabs-mode nil)
  '(package-selected-packages
-   '(js2-mode ledger-mode auctex auto-complete bbdb flycheck fountain-mode ivy markdown-mode org-journal org-roam org-transclusion web-mode writeroom-mode yaml-mode org htmlize wc-mode org-download apache-mode org-superstar highlight-indent-guides rjsx-mode gnuplot-mode font-lock-studio dired+ lua-mode fill-column-indicator ebib))
+   '(gptel use-package project-mode-line-tag js2-mode ledger-mode auctex auto-complete bbdb flycheck fountain-mode ivy markdown-mode org-journal org-roam org-transclusion web-mode writeroom-mode yaml-mode org htmlize wc-mode org-download apache-mode org-superstar highlight-indent-guides rjsx-mode gnuplot-mode font-lock-studio dired+ lua-mode fill-column-indicator ebib))
  '(safe-local-variable-values
    '((vc-prepare-patches-separately)
      (diff-add-log-use-relative-names . t)

@@ -11,11 +11,9 @@
 ;; Drag-and-drop to `dired`
 (add-hook 'dired-mode-hook 'org-download-enable)
 
-
 (setq org-download-display-inline-images nil
       org-download-link-format "[[file:%s][file:%s]]\n"
       org-download-link-format-function 'e/org-download-link-format-function)
-
 
 (defun e/org-download-link-format-function (filename)
   "Custom function."
@@ -30,6 +28,20 @@
                                         filename))
                               org-download-link-format)))
 
+(defun e/org-download-link-at-point ()
+  (interactive)
+  (let* ((context (org-element-context))
+         (type (org-element-type context)))
+    (when (eq type 'link)
+      (let ((path (org-element-property :path context))
+            (beg (org-element-property :begin context))
+            (end (org-element-property :end context)))
+        (when (= beg (line-beginning-position))
+          (setq beg (1- beg)))
+        (goto-char beg)
+        (delete-region beg end)
+        (org-download-image path)
+        (backward-delete-char 1)))))
 
 (provide 'org-download-custom)
 

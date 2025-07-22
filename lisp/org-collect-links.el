@@ -5,6 +5,9 @@
 ;; (require 'org-collect-links)
 
 ;;; Code:
+
+(require 'org)
+(require 'org-fold)
 ;;*** concat files, libreoffice hyperlink
 
 
@@ -597,28 +600,34 @@ GROUP BY id ORDER BY id")
 ;;*** collect links tree
 
 
-(defun e/org-collect-links-to-properties ()
+(defun e/org-collect-links-to-properties ( &optional heading-id prop-id)
   (save-excursion
     (goto-char (point-min))
-    (while (re-search-forward ":link\\+?:" nil t)
+    (while (re-search-forward (concat ":"
+                                      (or prop-id "link")
+                                      "\\+?:")
+                              nil t)
       (delete-region (line-beginning-position) (line-beginning-position 2)))
     (re-search-forward org-property-end-re nil t)
-    (when (re-search-forward "^\\*\s+Subnodes\s*$" nil t)
-      (let (( end (save-excursion
-                    (or (outline-get-next-sibling) (point))))
-            ids)
-        (while (and (re-search-forward org-link-bracket-re nil t)
-                    (< (point) end))
-          (when (string-match-p "^id:" (match-string-no-properties 1))
-            (setq ids (cons (replace-regexp-in-string
-                             "^id:" "" (match-string-no-properties 1))
-                            ids))))
-        (goto-char (point-min))
-        (re-search-forward org-property-end-re nil t)
-        (beginning-of-line)
-        (dolist ( id (nreverse ids))
-          (insert ":link+: " id "\n")))))
-  (org-hide-drawer-all))
+    (if (re-search-forward (concat "^\\*+\s+"
+                                     (or heading-id "Subnodes")
+                                     "\s*$")
+                             nil t)
+        (let (( end (save-excursion
+                      (or (outline-get-next-sibling) (point))))
+              ids)
+          (while (re-search-forward org-link-bracket-re end t)
+            (when (string-match-p "^id:" (match-string-no-properties 1))
+              (setq ids (cons (replace-regexp-in-string
+                               "^id:" "" (match-string-no-properties 1))
+                              ids))))
+          (goto-char (point-min))
+          (re-search-forward org-property-end-re nil t)
+          (beginning-of-line)
+          (dolist ( id (nreverse ids))
+            (insert ":" (or prop-id "link") "+: " id "\n"))
+          ids)
+      nil)))
 
 
 (defun e/org-collect-links-to-properties-before-save ()

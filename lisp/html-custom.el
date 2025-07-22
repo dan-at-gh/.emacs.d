@@ -1,4 +1,4 @@
-;;; html-custom --- HTML mode customization
+;;; html-custom --- HTML mode customization  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Load this package with:
@@ -10,9 +10,6 @@
 ;;*** Set variables
 
 (setq sgml-validate-command "tidy")
-
-
-;;*** Inserting commands
 
 (defun html-insert-tag ()
   (interactive)
@@ -32,10 +29,6 @@
   (async-shell-command (concat "firefox " (buffer-file-name)
                                " -P emacs -no-remote"))
   (shell-command "/home/dan/bin/i3-focus-window 5 emacs"))
-
-
-;;*** Hook
-
 
 (add-hook 'html-mode-hook
   (lambda ()

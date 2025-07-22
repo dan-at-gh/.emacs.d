@@ -8,6 +8,26 @@
 (require 'org-roam-custom)
 (require 'org-roam-publish)
 
+;; required for live-server command:
+(setenv "PATH" (concat "/home/dan/.nvm/versions/node/v18.15.0/bin:"
+                       (getenv "PATH")))
+
+(defun e/org-publish-live-server ( &optional dir open)
+  "Start a live server for org-roam nodes.
+
+DIR is the directory watched by the live server.  OPEN holds the
+file to be displayed in the browser."
+  (unless dir
+    (setq dir "~/public_html"))
+  (unless (get-process "live-server")
+    (let (( default-directory dir)
+          ( command (concat "live-server"
+                            (when open (concat " --open=" open)))))
+      (start-process-shell-command "live-server" nil command)
+      (message "%s" command))
+    t))
+
+
 (defun e/org-live-server-open-file ( file id)
   (let* (( project (e/org-publish-get-html-project file))
          ( base-directory (expand-file-name

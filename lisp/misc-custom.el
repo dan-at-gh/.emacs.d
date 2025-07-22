@@ -6,7 +6,7 @@
 
 ;;; Code:
 
-
+(require 'time)
 ;;** Put enable/disable commands
 
 
@@ -29,7 +29,6 @@
         (revert-buffer t t nil))))
   (message "Refreshed open files."))
 
-
 (defun update-buffer-file-names ()
   "Check for changed filenames outside of Emacs."
   (interactive)
@@ -51,19 +50,16 @@
           (set-buffer-modified-p nil))
         (kill-buffer buffer)))))
 
-
 (defun insert-at ( pos text)
   "Insert TEXT at POS."
   (goto-char pos)
   (insert text))
-
 
 (defun get-string-from-file ( file-path)
   "Return FILE-PATH's file content."
   (with-temp-buffer
     (insert-file-contents file-path)
     (buffer-string)))
-
 
 (defun read-lines ( filepath &optional omit-nulls)
   "Return a list of lines of a file at FILEPATH.
@@ -73,27 +69,23 @@ OMIT-NULLS is passed to `split-string'."
     (insert-file-contents filepath)
     (split-string (buffer-string) "\n" omit-nulls)))
 
-
-(defun global-disable-mode (mode-fn)
+(defun global-disable-mode ( mode-fn)
   "Disable `MODE-FN' in ALL buffers."
   (interactive "a")
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       (funcall mode-fn -1))))
 
-
 (defun minibuffer-msg (msg-str)
   "Display MSG-STR only in minibuffer, not in *Message* buffer."
   (let ((message-log-max nil))
        (message msg-str)))
 
-
 (defun execute-without-undo ()
   "Execute without undo."
-  (let (save (copy-tree buffer-undo-list))
+  (let ((save (copy-tree buffer-undo-list)))
     (setq buffer-undo-list t)
     (setq buffer-undo-list (copy-tree save))))
-
 
 (defun current-line-empty-p ()
   "Return non-nil, if line is empty."
@@ -129,7 +121,6 @@ Returns:
                 (elt mycharset (random (length mycharset)))))))
     str))
 
-
 (defun remove-regexp-chars ( str)
   "Take STR and remove all special characters."
   (replace-regexp-in-string (concat "\\^" "\\|"
@@ -138,35 +129,17 @@ Returns:
                                     ")")
                             "" str))
 
-
 (defun ramp ( x)
   "Ramp function with argument X."
   (if (< x 0) 0 x))
-
-
-(defun mouse-wheel-time-up ()
-  "Control timestamp by mouse wheel."
-  (interactive)
-  (when (org-at-timestamp-p t)
-        (org-timestamp-up-day)))
-
-
-(defun mouse-wheel-time-down ()
-  "Control timestamp by mouse wheel."
-  (interactive)
-  (when (org-at-timestamp-p t)
-        (org-timestamp-down-day)))
-
 
 (defun e/mwheel-scroll-left ()
   (interactive)
   (scroll-left 5))
 
-
 (defun e/mwheel-scroll-right ()
   (interactive)
   (scroll-right 5))
-
 
 (defun message-time-difference ( comment start)
   "Print a message about elapsed time.
@@ -176,7 +149,6 @@ Provide a COMMENT string and START time."
                     (time-subtract (current-time) start))))
        (message "%s (%.6fs)" comment elapsed))
   (current-time))
-
 
 (defun find-nonascii-char ()
   "Scan whole buffer for nonascii characters."
@@ -188,7 +160,6 @@ Provide a COMMENT string and START time."
       (progn
         (goto-char pos)
         nil))))
-
 
 (defun fill-to-width ()
   (interactive)
@@ -279,21 +250,9 @@ middle button pasting."
   (let ((select-enable-primary t))
     (kill-new (buffer-file-name) t)))
 
-
-(defun library-directory ( library)
-  "Find the directory of the library source file.
-
-The LIBRARY is the string version of the symbol given to the
-`require' function. That means, the library directory should be
-added to the `load-path' variable. Internally `find-library-name'
-is used to find the full path of the library."
-  (file-name-directory (find-library-name library)))
-
-
 (defun set-original-value (symbl)
   "Reset SYMBL to its standard value."
   (set symbl (eval (car (get symbl 'standard-value)))))
-
 
 (defmacro with-timer (title &rest forms)
   "Run the given FORMS, counting the elapsed time.
@@ -309,17 +268,12 @@ time is displayed."
                 (float-time (time-subtract (current-time) ,nowvar))))
            (message "%s... done (%.3fs)" ,title elapsed))))))
 
-
 (defun e/region-remove-spaces ()
   (interactive)
   (when (region-active-p)
     (replace-regexp "\s" "" nil
                     (region-beginning)
                     (region-end))))
-
-
-;;** Function for mouse click position
-
 
 (defmacro with-mouse-click-position ( event &rest body)
   "Execute body at mouse click position without moving point."
@@ -328,7 +282,6 @@ time is displayed."
      (with-current-buffer (window-buffer window)
            (goto-char pos)
            ,@body)))
-
 
 (defun point-set-to-mouse ( event)
   (select-window (posn-window (event-end event)))
@@ -340,19 +293,15 @@ time is displayed."
   (select-window (posn-window (event-end event)))
   (goto-char (posn-point (event-end event))))
 
-
-
 (defun mouse-goto-bol (click)
   "Move to beginning of line for mouse-1 click in left fringe."
   (interactive "e")
   (mouse-goto-line click 'left))
 
-
 (defun mouse-goto-eol (click)
   "Move to beginning of line for mouse-1 click in left fringe."
   (interactive "e")
   (mouse-goto-line click 'right))
-
 
 (defun mouse-goto-line (click left/right)
   "Helper for `mouse-goto-(bol|eol)'."
@@ -465,8 +414,8 @@ time is displayed."
   "Read a choice in the minibuffer, with completion.
 
 This function is meant as a replacement for `completing-read' in
-some special cases. These cases are characterized by multiple
-choice selection rather than selection by completion. Partly
+some special cases.  These cases are characterized by multiple
+choice selection rather than selection by completion.  Partly
 inspired by `minibuffer-completion-help'."
   (with-current-buffer-window
    "*Choices*"
@@ -1849,70 +1798,12 @@ See the docstring of `org-open-file' for details."
     (wcount-log-prepend)))
 
 
-;;** Global key bindings
-
-
-(global-set-key "\C-x\C-x" 'obuffer-open)
-(global-set-key "\C-x\C-y" 'obuffer-use-other-window)
-(global-set-key "\C-xd" 'dired-fullscreen-one-pan-view)
-(global-set-key "\C-xx" 'dired-fullscreen-two-pan-view)
-(global-set-key "\C-xtt" 'tw-start)
-(global-set-key "\C-xte" 'tw-stop)
-(global-set-key "\C-xtb" 'tw-break-toggle)
-(global-set-key (kbd "\C-x\C-g") 'find-file-at-point)
-(global-set-key (kbd "M-p") 'previous-buffer)
-(global-set-key (kbd "M-n") 'next-buffer)
-(global-set-key (kbd "M-s M-s") 'swap-buffer-window)
-(global-set-key (kbd "<f9>") 'browser-google-region)
-(global-set-key (kbd "C-c <f9>") 'browser-google-region-quoted)
-(global-set-key (kbd "<f11>") 'collapse-toggle-frame-fullscreen)
-(global-set-key (kbd "<C-return>") 'temp-edit-toggle)
-(global-set-key (kbd "<C-M-return>") 'electric-indent-just-newline)
-(global-set-key "\C-cg" 'grep-region)
-(global-set-key "\C-ch" 'locate)
-(global-set-key (kbd "M-<wheel-down>") 'e/mwheel-scroll-left)
-(global-set-key (kbd "M-<wheel-up>") 'e/mwheel-scroll-right)
-(global-set-key (kbd "C->") 'fill-to-width)
-(global-unset-key (kbd "<C-down-mouse-1>"))
-(global-set-key (kbd "C-c n f") 'e/ivy-org-roam-node-find)
-(global-set-key (kbd "C-c n b") 'e/org-roam-browser-node-find)
-(global-set-key (kbd "C-c n d") 'org-roam-dailies-capture-date)
-(global-set-key (kbd "C-c n n") #'org-capture)
-(global-set-key (kbd "C-c l") #'org-store-link)
-(global-set-key (kbd "C-c a") #'org-agenda)
-(global-set-key (kbd "C-c C-x C-i") 'org-clock-in)
-(global-set-key (kbd "C-c C-x C-o") 'org-clock-out)
-(global-set-key (kbd "C-c C-x C-x") 'org-clock-in-last)
-(global-set-key (kbd "C-c C-x C-j") 'org-clock-goto)
-(global-set-key (kbd "C-c C-n C-n") 'e/org-roam-note-list-plain)
-(global-set-key (kbd "C-c C-n C-e") 'e/org-roam-note-list-plain-exclude)
-(global-set-key (kbd "C-c j") 'e/region-remove-spaces)
-(global-set-key [left-margin mouse-1]  'mouse-goto-bol)
-(global-set-key [left-fringe mouse-1]  'mouse-goto-bol)
-
+;;** Key bindings
 
 (define-key minibuffer-local-completion-map (kbd "SPC") 'self-insert-command)
 
 
 ;;** Modeline
-
-
-;; (setq mode-line-format
-;; '("%e"
-;;   mode-line-front-space
-;;   mode-line-mule-info
-;;   mode-line-client
-;;   mode-line-modified
-;;   mode-line-remote
-;;   mode-line-frame-identification
-;;   mode-line-buffer-identification
-;;   "   " mode-line-position
-;;  (vc-mode vc-mode)
-;;  "  " mode-line-modes
-;;  mode-line-misc-info
-;;  mode-line-end-spaces))
-
-;; Display date and time in bright on dark face.
 
 (defface mode-line-time-face
    '((((type x w32 mac))
@@ -2060,6 +1951,32 @@ See the docstring of `org-open-file' for details."
 
 (global-visual-line-mode t)
 (setq-default fill-column 80)
+
+;;** Search current word under cursor
+
+(defun xah-search-current-word ()
+  "Call `isearch' on current word or selection.
+“word” here is A to Z, a to z, and hyphen [-] and lowline [_],
+independent of syntax table.
+
+URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+Created: 2010-05-29
+Version: 2025-02-05"
+  (interactive)
+  (if isearch-mode
+      (isearch-repeat-forward 1)
+    (let (xbeg xend)
+      (if (region-active-p)
+          (setq xbeg (region-beginning) xend (region-end))
+        (save-excursion
+          (skip-chars-backward "-_A-Za-z0-9")
+          (setq xbeg (point))
+          (right-char)
+          (skip-chars-forward "-_A-Za-z0-9")
+          (setq xend (point))))
+      (when (< xbeg (point)) (goto-char xbeg))
+      (isearch-mode t)
+      (isearch-yank-string (buffer-substring-no-properties xbeg xend)))))
 
 
 (provide 'misc-custom)

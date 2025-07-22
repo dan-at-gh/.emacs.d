@@ -9,7 +9,7 @@
 (require 'org)
 (require 'org-roam)
 (require 'ox-publish)
-
+(require 'org-cite-custom)
 
 (defvar e/org-publish-base-directory nil)
 (defvar e/org-publish-html-link-home nil)
@@ -21,13 +21,11 @@
 (defvar org-html-style-main "")
 (defvar org-html-style-comic "")
 
-
 (org-link-set-parameters
  "emacs"
  :follow 'e/org-cite-open-file
  :export 'e/org-emacs-export
  :face 'org-link)
-
 
 (setq org-publish-project-alist
   '(("projects-to-html"
@@ -82,6 +80,9 @@
      :html-link-home "http://localhost/~dan/org-roam/"
      :body-only t
      :with-toc nil
+     :tag "public"
+     :rel-url "/roam"
+     :image-directory "/home/dan/business/novel-canvas/gatsby/static/images"
      :with-broken-links mark
      :auto-sitemap nil
      :recursive t
@@ -98,24 +99,9 @@
   org-export-with-drawers nil
   org-export-with-tags nil)
 
-
 ;; pandoc test.org -f org -t html -s -o test.html --bibliography /home/dan/library/database/reference.bib --citeproc --mathjax=""
 
-
 (setq org-html-head "<!-- org-html-head begin -->
-<script>
-  MathJax = {
-    tex: {
-      tags: 'ams',  // should be 'ams', 'none', or 'all'
-      inlineMath: [['$', '$']]
-    }
-  };
-</script>
-<script
-  id=\"MathJax-script async for align environments\"
-  async
-  src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\">
-</script>
 <!-- org-html-head end -->"
       org-html-style-main
       "  /* org-html-style-main begin */
@@ -158,26 +144,6 @@
                                   org-html-style-end))
 
 
-(setenv "PATH" (concat "/home/dan/.nvm/versions/node/v18.15.0/bin:"
-                       (getenv "PATH")))
-
-
-(defun e/org-publish-live-server ( &optional dir open)
-  "Start a live server for org-roam nodes.
-
-DIR is the directory watched by the live server.  OPEN holds the
-file to be displayed in the browser."
-  (unless dir
-    (setq dir "~/public_html"))
-  (unless (get-process "live-server")
-    (let (( default-directory dir)
-          ( command (concat "live-server"
-                            (when open (concat " --open=" open)))))
-      (start-process-shell-command "live-server" nil command)
-      (message "%s" command))
-    t))
-
-
 (defun e/org-publish-preparation-function ( plist)
   ;; Update sitemap always
   ;; (org-publish-remove-all-timestamps)
@@ -185,19 +151,10 @@ file to be displayed in the browser."
   (setq e/org-publish-base-directory (expand-file-name (plist-get plist :base-directory))
         e/org-publish-html-link-home (plist-get plist :html-link-home)
         e/org-publish-html-link-up (plist-get plist :html-link-up))
-  ;; (add-hook 'org-export-before-processing-functions #'e/org-export-navbar)
-  ;; (add-hook 'org-export-before-processing-functions #'e/org-roam-links-update)
   )
 
-
-(defun e/org-publish-completion-function ( plist)
-  ;; (let (( publishing-directory (plist-get plist :publishing-directory)))
-  ;;   (e/org-publish-live-server publishing-directory))
-  (setq org-export-with-section-numbers t)
-  ;; (remove-hook 'org-export-before-processing-functions #'e/org-export-navbar)
-  ;; (remove-hook 'org-export-before-processing-functions #'e/org-roam-links-update)
-  )
-
+(defun e/org-publish-completion-function ( _)
+  (setq org-export-with-section-numbers t))
 
 (defun e/org-publish-completion-pdf ( plist)
   (dolist ( base-file (org-publish-get-base-files (cons "dummy" plist)))
@@ -229,10 +186,6 @@ file to be displayed in the browser."
     (unless project
       (user-error "Buffer not part of any publishing project"))
     (save-buffer)
-    ;; (e/org-publish-live-server (expand-file-name
-    ;;                             (org-publish-property
-    ;;                              :publishing-directory
-    ;;                              project)))
     (org-publish-current-project nil t)))
 
 
@@ -283,47 +236,35 @@ file to be displayed in the browser."
 
 (defun e/org-roam-publish-after-save ()
   (when (org-roam-buffer-p)
-    (let (( id (org-id-get (point-min)))
-          ( project (e/org-publish-get-html-project)))
+    (let (( project (e/org-publish-get-html-project)))
       (when project
-        (let (( plist (cdr project))
-              ( base-directory (expand-file-name
-                                (org-publish-property
-                                 :base-directory
-                                 project)))
-              ( publishing-directory (expand-file-name
-                                      (org-publish-property
-                                       :publishing-directory
-                                       project)))
-              ( preparation-function (org-publish-property
-                                      :preparation-function
-                                      project))
-              ( completion-function (org-publish-property
-                                     :completion-function
-                                     project)))
-          (e/org-publish-current-file project))))))
-
+        (e/org-publish-current-file project)))))
 
 (defun e/org-roam-publish-attachments ( plist pub-dir)
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward org-link-bracket-re nil t)
       (when (string-match-p "^file:" (match-string 1))
-        (message "e/org-roam-publish-attachments: %s" (match-string 1))
         (let* (( filename (replace-regexp-in-string
                            "^file:" "" (match-string-no-properties 1)))
-               ( rel-dir (file-name-directory filename)))
-          (message "e/org-roam-publish-attachments: %s %s %s" filename pub-dir rel-dir)
-          (org-publish-attachment plist filename
-                                  (concat (file-name-as-directory pub-dir)
-                                          rel-dir)))))))
-
+               ( rel-dir (if (file-name-absolute-p filename)
+                             (let* (( abs-name (expand-file-name filename))
+                                    ( base-dir (file-name-as-directory
+                                                (expand-file-name
+                                                 (plist-get plist :base-directory))))
+                                    ( start (string-match base-dir abs-name)))
+                               (when (and start (= start 0))
+                                 (file-name-directory (substring abs-name (match-end 0)))))
+                           (file-name-directory filename))))
+          (when rel-dir
+            (org-publish-attachment plist filename
+                                    (file-name-concat pub-dir
+                                                      rel-dir))))))))
 
 (defun e/org-publish-base-files ()
   (let ( base-files)
     (dolist (project org-publish-project-alist)
-      (let (( id (car project))
-            ( base-directory (plist-get (cdr project) :base-directory)))
+      (let (( base-directory (plist-get (cdr project) :base-directory)))
         (when base-directory
           (setq base-files
                 (append base-files
@@ -365,7 +306,7 @@ PROJECT is the current project."
     sitemap-title))
 
 
-(defun e/org-emacs-export ( path description back-end export-channel)
+(defun e/org-emacs-export ( path description back-end _)
   "Export of \"emacs\"-links.
 
 PATH: id of the org-roam node,
@@ -383,7 +324,6 @@ EXPORT-CHANNEL: export-channel."
   (when (and link (string-match org-link-bracket-re link))
     (let* (( type-id (save-match-data
                        (string-split (match-string 1 link) ":")))
-           ( type (car type-id))
            ( id (cadr type-id))
            ( description (match-string 2 link))
            ( file (caar (org-roam-db-query [:select [file]
@@ -426,7 +366,7 @@ EXPORT-CHANNEL: export-channel."
                       "\">&gt;" (car next) "</a>"))))))
 
 
-(defun e/org-export-navbar ( backend)
+(defun e/org-export-navbar ( _)
   (let* (( id (org-id-get (point-min)))
          ( title (cadar (org-collect-keywords '("TITLE"))))
          ( prev-next-links (e/org-publish-html-prev-next id)))
@@ -437,22 +377,63 @@ EXPORT-CHANNEL: export-channel."
                            (or (cadr prev-next-links) "none")
                            "</div>"))))))
 
-
 (defun e/org-roam-export-preamble ( backend)
-  (setq org-html-preamble-format '(("en" "")))
-  (when (and (eq backend 'html) (org-id-get (point-min)))
-    (let* (( id (org-id-get (point-min)))
-           ( title (cadar (org-collect-keywords '("TITLE"))))
-           ( filetags (cadar (org-collect-keywords '("FILETAGS"))))
-           ( listtags (when filetags
-                      (string-join
-                       (mapcar (lambda ( tag) (concat "<li>#" tag "</li>"))
-                               (split-string filetags
-                                             ":" 'OMIT-NULLS))))))
-      (setq org-html-preamble-format
-            `(("en" ,(concat "\n<a href=\"emacs:id:" id "\">" title "</a><br>\n"
-                             (when listtags
-                               (concat "<ul>" listtags "</ul>")))))))))
+  (cond ((and (eq backend 'html) (org-id-get (point-min)))
+         (let* (( id (org-id-get (point-min)))
+                ( title (cadar (org-collect-keywords '("TITLE"))))
+                ( filetags (cadar (org-collect-keywords '("FILETAGS"))))
+                ( listtags (when filetags
+                             (string-join
+                              (mapcar (lambda ( tag) (concat "<li>#" tag "</li>"))
+                                      (split-string filetags
+                                                    ":" 'OMIT-NULLS))))))
+           (setq org-html-preamble-format
+                 `(("en" ,(concat "\n<a href=\"emacs:id:" id "\">" title "</a><br>\n"
+                                  (when listtags
+                                    (concat "<ul>" listtags "</ul>"))))))))
+        (t
+         (setq org-html-preamble-format '(("en" ""))))))
+
+(defun e/org-roam-network-protocol-emacs:id ( link)
+  (let* (( file-id (string-split link ":"))
+         ;; ( protocol (car file-id))
+         ( file (cadr file-id))
+         ( id (caddr file-id))
+         ( mark (cadddr file-id))
+         ( window (selected-window)))
+    (cond ((string= file "cite")
+           (e/org-cite-open-file id nil))
+          ((string= file "id")
+           (x-focus-frame nil)
+           (pop-to-buffer (find-file-noselect (caar (org-roam-db-query [:select [file]
+                                    :from nodes
+                                    :where (= id $s1)]
+                                        id)))))
+          ((string= id "unmark")
+           (x-focus-frame nil)
+           (pop-to-buffer (find-file-noselect file))
+           (remove-overlays nil nil 'match t))
+          ((string-prefix-p "c_" id)
+           (x-focus-frame nil)
+           (pop-to-buffer (find-file-noselect file))
+           (goto-char (point-min))
+           (re-search-forward "^\\*\s+#\s*columns" nil t)
+           (org-fold-show-subtree)
+           (re-search-forward id nil t))
+          (t
+           (x-focus-frame nil)
+           (pop-to-buffer (find-file-noselect file))
+           ;; (org-cycle-overview) ;; collapse all
+           (goto-char (point-min))
+           (when (re-search-forward id nil t)
+             (org-back-to-heading)
+             (if mark
+                 (let (( overlay (make-overlay (point)
+                                               (line-end-position))))
+                   (overlay-put overlay 'font-lock-face 'secondary-selection)
+                   (overlay-put overlay 'match t))
+               (org-fold-show-subtree)))
+           (select-window window)))))
 
 
 

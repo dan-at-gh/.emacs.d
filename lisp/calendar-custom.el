@@ -6,7 +6,9 @@
 
 ;;** Calender settings
 
- 
+(require 'calendar)
+(require 'solar)
+
 (add-hook 'calendar-load-hook
           (lambda ()
             (calendar-set-date-style 'european)))
@@ -15,11 +17,9 @@
           (lambda ()
             (define-key calendar-mode-map "\C-x\C-x" 'obuffer-open)))
 
-(require 'calendar)
 (set-face-attribute 'calendar-today nil :box t :underline nil)
 (add-hook 'calendar-today-visible-hook 'calendar-mark-today)
 
-;;*** Set variables
 
 (setq calendar-week-start-day 1
       calendar-day-name-array ["Sonntag" "Montag" "Dienstag" "Mittwoch"
@@ -53,7 +53,11 @@
                                    (holiday-fixed 8 15 "Mariae Himmelfahrt")
                                    (holiday-fixed 11 1 "Allerheiligen")
                                    (holiday-float 11 3 1 "Buss- und Bettag" 16)
-                                   (holiday-float 11 0 1 "Totensonntag" 20)))
+                                   (holiday-float 11 0 1 "Totensonntag" 20))
+      holiday-hebrew-holidays nil
+      holiday-islamic-holidays nil
+      holiday-bahai-holidays nil
+      holiday-oriental-holidays nil)
  
 
 (provide 'calendar-custom)

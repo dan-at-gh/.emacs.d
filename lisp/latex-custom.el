@@ -1,23 +1,14 @@
-;;; latex-custom --- LaTeX and TeX customization
+;;; latex-custom --- LaTeX and TeX customization  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Load this package with:
 ;; (require 'latex-custom)
 
 ;;; Code:
-;;** TeX/LaTeX mode
-
-;;*** Require necessary packages for org-reftex
-
-;; Make sure to packages for citations are loaded.
 
 (require 'org)
-;; (require 'org-bibtex)
-;; (require 'ox-bibtex)
- 
-
-;;*** Font definition
-
+(require 'font-latex)
+(require 'misc-custom)
 
 (defface LaTeX-layer-begin-bg
   '((((type x w32 mac))
@@ -72,7 +63,7 @@
     :group 'basic-faces)
 
 
-(setq LaTeX-map-block-colors '(("yellow" latex-block-yellow)
+(defvar LaTeX-map-block-colors '(("yellow" latex-block-yellow)
                                ("green" latex-block-green)
                                ("red" latex-block-red)
                                ("blue" latex-block-blue)
@@ -109,7 +100,7 @@ The value of `LaTeX-environment-layers is then set to
           "chapter (no command)" "layer (no command)")
         nil t "")))
   (unless (string-suffix-p "(no command)" cread)
-    (insert "\\label\{"))
+    (insert "\\label{"))
   (let* (( prefix (cond ((string-prefix-p "equation" cread) "eq:")
                         ((string-prefix-p "table" cread) "tab:")
                         ((string-prefix-p "figure" cread) "fig:")
@@ -122,12 +113,8 @@ The value of `LaTeX-environment-layers is then set to
     (insert id)
     (kill-new id))
   (unless (string-suffix-p "(no command)" cread)
-          (insert "\}")
+          (insert "}")
           (newline)))
-
-
-;;*** Functions for sparse tree
- 
 
 (defun insert-tex-sparse-tree ()
   "Create section label, environment and hiding switch."
@@ -147,7 +134,6 @@ The value of `LaTeX-environment-layers is then set to
       (insert "\\includecomment{" label "}\n"
               "%\\excludecomment{" label "}\n"))))
 
-
 (defun latex-section-occur ()
   (re-search-forward "\\\\hyperref\\[\\([A-Za-z0-9]+\\):\\([^]]*\\)\\]{\\([^}]*\\)}" nil t)
   (save-excursion
@@ -161,9 +147,8 @@ The value of `LaTeX-environment-layers is then set to
 
 (defun insert-tex-ref ()
   (interactive)
-  (insert "(\\ref\{\})")
+  (insert "(\\ref{})")
   (goto-char (- (point) 2)))
-
 
 (defun region-tex-insert ()
   (let (( pos1 (point))
@@ -184,13 +169,13 @@ The value of `LaTeX-environment-layers is then set to
   (insert (concat (completing-read "Text type: "
                     '(("\\textrm" 1) ("\\textbf" 2) ("\\textit" 3))
                     nil nil "\\text")
-                  "\{" (region-tex-insert) "\}"))
+                  "{" (region-tex-insert) "}"))
   (goto-char (1- (point))))
 
 
 (defun insert-tex-texteq()
   (interactive)
-  (insert (concat "\$ " (region-tex-insert) "\$"))
+  (insert (concat "$ " (region-tex-insert) "$"))
   (forward-char -1))
 
 
@@ -262,7 +247,7 @@ The value of `LaTeX-environment-layers is then set to
 (defun insert-tex-curlies ()
   (interactive)
   (let ( extracted)
-    (insert (concat "\{" (setq extracted (region-tex-insert)) "\}"))
+    (insert (concat "{" (setq extracted (region-tex-insert)) "}"))
     (when (string= extracted "")
       (goto-char (- (point) 1)))))
 
@@ -279,7 +264,7 @@ The value of `LaTeX-environment-layers is then set to
 "\\includecomment" "\\excludecomment" "\\bar" "\\tilde" "\\hat"
 "\\eqref" "\\secref" "\\figref")
                     nil nil "\\")
-                  "\{" (setq extracted (region-tex-insert)) "\}")
+                  "{" (setq extracted (region-tex-insert)) "}")
           macro (replace-regexp-in-string  "\\\\mr{" "\\\\mathrm{" macro)
           macro (replace-regexp-in-string  "\\\\mb{" "\\\\mathbf{" macro)
           macro (replace-regexp-in-string  "\\\\mi{" "\\\\mathit{" macro)
@@ -295,19 +280,19 @@ The value of `LaTeX-environment-layers is then set to
 
 (defun insert-tex-partial-derivative ()
   (interactive)
-  (insert "\\frac\{\\partial  \}\{\\partial \}")
+  (insert "\\frac{\\partial  }{\\partial }")
   (goto-char (- (point) 13)))
 
 
 (defun insert-tex-derivative ()
   (interactive)
-  (insert "\\frac\{\\mathrm{d}  \}\{\\mathrm{d}  \}")
+  (insert "\\frac{\\mathrm{d}  }{\\mathrm{d}  }")
   (goto-char (- (point) 16)))
 
 
 (defun insert-tex-fraction ()
   (interactive)
-  (insert "\\frac\{  \}\{  \}")
+  (insert "\\frac{  }{  }")
   (goto-char (- (point) 6)))
 
 
@@ -319,7 +304,7 @@ The value of `LaTeX-environment-layers is then set to
                                "-biblink.tex"))
          ( key (car (reftex-citation t)))
          ( path (latex-locate-citation key))
-         ( fields (bibtex-key-get-fields key "author" "year"))
+         ( fields (ebibtex-key-get-fields key "author" "year"))
          ( command (replace-regexp-in-string "[0-9]" "" key))
          ( commands (latex-locate-citation-read biblinkFile))
            author year)
@@ -607,7 +592,6 @@ name \"View\".
           text (replace-regexp-in-string "\s+\\;" ";" text)
           text (string-trim text))))
 
-
 (defun TeX-keywords-extract-format ()
   (goto-char (point-min))
   (let* (( begin (re-search-forward "\\\\begin{keyword}" (point-max) t))
@@ -629,7 +613,6 @@ name \"View\".
                  (capitalize (match-string 2 text)) nil nil text 2)))
     text))
 
-
 (defun text-clear-layout ( text)
   (setq text (replace-regexp-in-string "\n" " " text)
         text (replace-regexp-in-string "\s\s+" " " text)
@@ -644,7 +627,6 @@ name \"View\".
                  (1- (point))))
          ( text (buffer-substring-no-properties begin end)))
         (text-clear-layout text)))
-
 
 (defun TeX-to-ascii-extraction ( path dir)
   (let* (( master (file-name-base path))
@@ -684,7 +666,6 @@ name \"View\".
   "Face for existing file paths."
   :group 'file-path-operations)
 
-
 (defun get-filename-at-pos ( start dir)
   (re-search-forward "}" (point-max) t)
   (let (( s (buffer-substring-no-properties start (1- (point)))))
@@ -693,7 +674,6 @@ name \"View\".
     (setq s (replace-regexp-in-string "\\\\HOME/"
               (file-name-as-directory (getenv "HOME")) s t))
     (expand-file-name s dir)))
-
 
 (defun basename-add-extension ( base baseExt ext str)
   (when (string= base baseExt)
@@ -705,12 +685,10 @@ name \"View\".
             'path-exists
             'path-exists-not))))
 
-
 (defun count-existing-files ( base ext count)
   (if (file-exists-p (concat base ext))
       (1+ count)
       count))
-
 
 (defun TeX-file-include-list ( dir path)
   (let (( re (concat "^[^%\n]*\\\\\\("
@@ -740,13 +718,13 @@ name \"View\".
                  (setq baseExt (basename-add-extension
                                  base base ".tex" ".tex"))
                  (when (file-exists-p baseExt)
-                       (add-to-list 'remainFiles baseExt)))
+                       (push baseExt remainFiles)))
                 ((string= "bibliography" (match-string 1))
                  (setq base (get-filename-at-pos start dir))
                  (setq baseExt (basename-add-extension
                                  base base ".bib" ".bib"))
                  (when (file-exists-p baseExt)
-                       (add-to-list 'remainFiles baseExt)))
+                       (add-to-list baseExt remainFiles)))
                 ((string= "includegraphics" (match-string 1))
                  (setq base (get-filename-at-pos start dir))
                  (setq baseExt (basename-add-extension
@@ -769,7 +747,7 @@ name \"View\".
                  (setq baseExt (basename-add-extension
                                  base base ".avi" ".avi"))))
           (when baseExt
-                (add-to-list 'files baseExt)))))
+                (push baseExt files)))))
     (list remainFiles files countGra countPdf countEps)))
 
 
@@ -1118,7 +1096,6 @@ file. The return value is the found absolute path."
               (setq found path)))
       found)))
 
-
 (defun latex-locate-citation-list ()
   "Gather BibTeX keys, define a valid latex command name and
 associate corresponding file information.
@@ -1149,7 +1126,7 @@ buffer."
         (setq key (match-string-no-properties 3)
               command (concat
                          "\\" (replace-regexp-in-string "[0-9]" "" key))
-              fields (bibtex-key-get-fields key "author" "year")
+              fields (ebibtex-key-get-fields key "author" "year")
               path (latex-locate-citation key)
               author nil
               year nil)
@@ -1166,7 +1143,6 @@ buffer."
                          "BibTeX key not found.")))
         (setq dict (cons (list command path) dict)))
       dict)))
-
 
 (defun latex-locate-citation-all ( masterFile)
   "Get biblink information from all project files.
@@ -1217,7 +1193,6 @@ See also `latex-locate-citation-list'."
         (setq commands (cons (match-string-no-properties 1) commands))))
     commands))
 
-
 (defun layers-get-footer ()
   (save-excursion
     (goto-char (point-min))
@@ -1229,15 +1204,11 @@ See also `latex-locate-citation-list'."
                             footers)))
       (delete-dups (remove "" footers)))))
 
-
 (defun layers-insert-footer ()
   (interactive)
   (insert (minibuffer-with-setup-hook #'minibuffer-completion-help
             (completing-read "Insert footer: "
               (layers-get-footer) nil t ""))))
-
-
-;;*** Function for viewing bibtex keys in external app
 
 (defun latex-locate-citation-view ()
   (interactive)
@@ -1262,16 +1233,11 @@ See also `latex-locate-citation-list'."
                 (async-shell-command binCmd nil))
           (message "No file name beginning with '%s' found." word)))))
 
-
-;;*** Function for highlighting
-
-
 (defun LaTeX-preamble-end ()
   (save-excursion
     (goto-char (point-min))
     (when (re-search-forward "\\\\begin{document}" (point-max) t)
           (line-end-position 0))))
-
 
 (defun LaTeX-parse-newlayers ()
   (save-excursion
@@ -1288,20 +1254,17 @@ See also `latex-locate-citation-list'."
 
 
 (defun LaTeX-goto-matching-end ( limit)
-  (let (( count 0)
-        ( pos (point)))
+  (let (( count 0))
     (while (>= count 0)
            (re-search-forward "\\\\\\(begin\\|end\\)" limit t)
            (if (string= (match-string 1) "begin")
                (setq count (1+ count))
                (setq count (1- count))))))
 
-
 (defvar LaTeX-layer-begin-map
   (let (( map (make-sparse-keymap)))
     (define-key map (kbd "<S-mouse-2>") 'LaTeX-mouse-layer-folding)
     map))
-
 
 (defun LaTeX-fontify-environments ( limit)
   (when (re-search-forward "^\s*\\\\begin{layer}{\\(x?\\)}{\\([a-z]+\\)}{\\([^{}%]*\\)}"
@@ -1357,12 +1320,10 @@ See also `latex-locate-citation-list'."
         (setq attribute-list (cons (car attr-value) attribute-list)))))
   attribute-list))
 
-
 (defun parent-override-face ( parent-face override-face)
   (cons :inherit
         (cons parent-face
               (specified-face-attributes override-face))))
-  
 
 (defun LaTeX-inside-environment-p ()
   (save-excursion
@@ -1377,11 +1338,9 @@ See also `latex-locate-citation-list'."
                        (list (match-string-no-properties 1 name)
                              (match-string-no-properties 2 name))))))))
 
-
 (defun LaTeX-environment-faces ( environment layers)
   (let (( hue (cadr (assoc environment layers))))
        (cdr (assoc hue LaTeX-map-block-colors))))
-
 
 (defun LaTeX-fontify-keywords-inside ( limit)
   (when (re-search-forward (concat "\\$[^$]*\\$"
@@ -1448,10 +1407,6 @@ jit-lock."
                            `( line-prefix ,prefix))
       t)))
 
-
-;;*** Function layer folding
-
-
 (defun LaTeX-hide-layer ()
   (let (( beg (line-end-position)))
     (beginning-of-line)
@@ -1481,7 +1436,6 @@ jit-lock."
     (toggle-block-folding 'LaTeX-show-layer 'LaTeX-hide-layer))
   (LaTeX-layer-font-lock-flush))
 
-
 (defun LaTeX-layer-font-lock-flush ()
   (save-excursion
     (goto-char (point-min))
@@ -1494,18 +1448,15 @@ jit-lock."
               (font-lock-flush beg (line-end-position))
             (beginning-of-line)))))))
 
-
 (defun LaTeX-next-layer ()
   (end-of-line)
   (when (re-search-forward "^\s*\\\\begin{layer}" nil t)
     (goto-char (match-beginning 0))))
 
-
 (defun LaTeX-previous-layer ()
   (beginning-of-line)
   (when (re-search-forward "^\s*\\\\begin{layer}" nil t -1)
     (goto-char (match-beginning 0))))
-
 
 (defun LaTeX-layer-cloaked-p ()
   (let* (( pos (point))
@@ -1518,7 +1469,6 @@ jit-lock."
       (setq overlay (pop overlays)))
     overlay))
 
-
 (defun LaTeX-fold-cloaked-layers ()
   (save-excursion
     (goto-char (point-min))
@@ -1527,18 +1477,14 @@ jit-lock."
         (when (begin-end-block-cloaked-p)
           (LaTeX-hide-layer))))))
 
-
 (defun LaTeX-show-all-layers ()
   (save-excursion
     (goto-char (point-max))
-      (while (LaTeX-previous-layer)
-        (when (setq overlay (begin-end-block-folded-p))
-          (LaTeX-show-layer))))
+    (while (LaTeX-previous-layer)
+      (let (( overlay (begin-end-block-folded-p)))
+        (when overlay
+          (LaTeX-show-layer)))))
   (font-lock-flush))
-
-
-;;*** Function for buffer change before and after compilation
-
 
 (defun LaTeX-change-before-compilation ()
   (interactive)
@@ -1585,10 +1531,6 @@ jit-lock."
       (while (re-search-forward "\\\\\\(begin\\|end\\){submit}\n" (point-max) t)
              (delete-region (match-beginning 0) (match-end 0))))))
 
-
-;;*** Function for source file position to pdf position
-
-
 (defun TeX-evince-sync-view-2 ( de app)
   "Modified version of `TeX-evince-sync-view-1', which take
 different output directory into account."
@@ -1618,7 +1560,6 @@ different output directory into account."
 		 :int32 (1+ (current-column)))
 	   :uint32 0))
       (error "Couldn't find the %s instance for %s" (capitalize app) uri))))
-
 
 (defun TeX-evince-sync-view-3 ( de app)
   "Modified version of `TeX-evince-sync-view-1'.
@@ -1659,50 +1600,15 @@ position in evince viewer, emacs -> evince."
   (with-mouse-click-position event
    (TeX-evince-sync-view-3 "gnome" "evince")))
 
-
 (advice-add #'TeX-source-correlate-sync-source :after
             #'TeX-source-correlate-after-hook)
+
 (defun TeX-source-correlate-after-hook ( file linecol &rest ignored)
   "Provide a hook for postprocessing of
-`TeX-source-correlate-sync-source' function. This will treat the
+`TeX-source-correlate-sync-source' function.  This will treat the
 sync direction evince -> emacs."
   (delete-overlays-at-point)
   (message "Run TeX-source-correlate-after-hook finished."))
-
-
-;; (dbus-call-method
-;; 		 :session "org.gnome.evince.Daemon"
-;; 		 "/org/gnome/evince/Daemon"
-;; 		 "org.gnome.evince.Daemon"
-;; 		 "FindDocument"
-;; 		 "file:///home/dan/tex/out/Dissertation.pdf"
-;; 		 t) -> ":1.306"
-
-;; (dbus-get-name-owner :session ":1.306")
-;; (dbus-get-name-owner :session "org.gnome.evince.Daemon") -> ":1.272"
-
-;; (dbus-list-queued-owners :session "org.gnome.evince.Daemon") -> (":1.272")
-
-;; (dbus-list-known-names :session)
-
-;; (dbus-introspect :session "org.gnome.evince.Daemon"
-;; 		 "/org/gnome/evince/Daemon")
-
-;; (dbus-introspect-get-all-nodes :session ":1.308" "/")
-;;    -> "/org/gnome/evince/Window/0"
-
-;; (dbus-introspect :session ":1.308"
-;; 		 "/org/gnome/evince/Window/0")
-
-;; (dbus-register-signal
-;;        :session nil "/org/gnome/evince/Window/0"
-;;        "org.gnome.evince.Window"
-;;        "SyncSource"
-;;        '(lambda ( file linecol &rest ignored) (message "%s %s %s" file linecol ignored)))
-
-;; -> on ctrl-left click in evince
-;;       -> file:///home/dan/tex/include/Dissertation/chapter01.tex (457 -1)
-
 
 (defun LaTeX-pdf-find-position ()
   "Synchronizing direction: LaTeX source in emacs -> PDF-viewer.
@@ -1734,16 +1640,14 @@ destination."
     (shell-command "/home/dan/bin/i3-focus-window 5 emacs")
     (goto-char pos)))
 
-
 (defun LaTeX-pdf-find-position-mouse ( event)
   (interactive "e")
   (point-set-to-mouse event)
   (LaTeX-pdf-find-position))
 
-
-(defun pdf-find-LaTeX-source-show ( file linecol &rest ignored)
+(defun pdf-find-LaTeX-source-show ( file linecol &rest _)
   (find-file (url-filename (url-generic-parse-url file)))
-  (goto-line (car linecol))
+  (forward-line (car linecol))
   (beginning-of-line)
   (let (( end (point)))
     (cond ((looking-at "\s*\\\\end{\\([a-zA-Z*]+\\)}")
@@ -1754,7 +1658,6 @@ destination."
            (goto-char end)
            (activate-mark)))))
 
-
 (defun pdf-find-LaTeX-source ()
   (dbus-register-signal
        :session nil "/org/gnome/evince/Window/0"
@@ -1762,32 +1665,22 @@ destination."
        "SyncSource"
        'pdf-find-LaTeX-source-show))
 
-
-;;*** AUCTeX-dnd
-
-
 (defcustom AUCTeX-dnd-format "\\includegraphics[width=\\textwidth]{%s}"
-  "What to insert, when a file is dropped on Emacs window. %s is
-replaced by the actual file name. If the filename is located
+  "What to insert, when a file is dropped on Emacs window.  %s is
+replaced by the actual file name.  If the filename is located
 under the directory of .tex document, only the part of the name
 relative to that directory in used."
   :type 'string
   :group 'AUCTeX)
 
-
-;; Modified version
-(defun AUCTeX-dnd-includegraphics (uri action)
+(defun AUCTeX-dnd-includegraphics (uri _)
   "Insert the text defined by `AUCTeX-dnd-format' when a file is
 dropped on Emacs window."
   (let ((file (dnd-get-local-file-name uri t)))
     (when (and file (file-regular-p file))
       (if (string-match "/my/texinputs/path/to/images" file)
       (insert (format AUCTeX-dnd-format (file-name-nondirectory file)))
-    (insert (format AUCTeX-dnd-format file))
-    )
-      )
-    )
-  )
+    (insert (format AUCTeX-dnd-format file))))))
 
 
 (defcustom AUCTeX-dnd-protocol-alist
@@ -2162,8 +2055,6 @@ when a file is dopped on Emacs window."
     (TeX-add-symbols '("hsection" LaTeX-macro-hsection)
                      '("hsubsection" LaTeX-macro-hsection)
                      '("hsubsubsection" LaTeX-macro-hsection))
-    (LaTeX-add-environments '("layer" LaTeX-env-layer)
-                            '("layer-split" LaTeX-env-layer-split))
     (font-lock-add-keywords nil
       '(;; (hyperlink-fontify-button 0 nil append t)
         ("\\(\\\\,\\)" 1 font-lock-keyword-face t)

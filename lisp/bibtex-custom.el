@@ -1,4 +1,4 @@
-;;; bibtex-custom --- BibTeX customization
+;;; bibtex-custom --- BibTeX customization  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Load this package with:
@@ -6,26 +6,21 @@
 
 ;;; Code:
 
-;;** BibTeX mode
-
-
-;;*** Set variables
-
+(require 'bibtex)
+(require 'latex-custom)
+(require 'misc-custom)
 
 (setq bibtex-comma-after-last-field t)
 
+(defvar ebibtex-default-bibliography '("/home/dan/library/database/reference.bib"))
 
-(defvar bibtex-extra-fields
+(defvar ebibtex-extra-fields
   '("abstract" "keywords" "chapter" "url" "isbn" "isbn_ebook"
     "isbn_soft" "isbn_hard" "issn" "issn_print" "issn_online"
     "issn_cdrom" "eprint" "doi" "year" "publisher" "fullname"
     "oldbibtexkey")
   "Extra fields to add to `bibtex-BibTeX-entry-alist' for the
-function `bibtex-insert-field'.")
-
-
-;;*** Function for formatting bibtex keys
-
+function `ebibtex-insert-field'.")
 
 (defun ebibtex-entry-get-field ( tag)
   (save-excursion
@@ -42,12 +37,11 @@ function `bibtex-insert-field'.")
                     (string-suffix-p "\"" text))
                 (setq text (substring text 0 -1)))
           (text-clear-layout text))))))
-        
 
-(defun bibtex-key-get-fields ( key &rest fields)
+(defun ebibtex-key-get-fields ( key &rest fields)
   (save-match-data
     (with-temp-buffer
-      (insert-file-contents (car reftex-default-bibliography))
+      (insert-file-contents (car ebibtex-default-bibliography))
       (when (bibtex-search-entry key)
         (let (( values nil))
           (dolist ( field fields)
@@ -55,16 +49,14 @@ function `bibtex-insert-field'.")
                                values)))
           (nreverse values))))))
 
-
-(defun bibtex-field-end-comma-entry ()
+(defun ebibtex-field-end-comma-entry ()
   (bibtex-end-of-entry)
   (re-search-forward "\\([^ \n{}]\\)" nil t -1)
   (unless (string= (match-string 1) ",")
     (end-of-line)
     (insert ",")))
 
-
-(defun bibtex-field-end-comma ()
+(defun ebibtex-field-end-comma ()
   (interactive)
   (goto-char (point-min))
   (let (( lastPos (- (point-max) 6))
@@ -80,8 +72,7 @@ function `bibtex-insert-field'.")
                       (goto-char pos)))
        (message "Added %s missing end-of-field commas" count)))
 
-
-(defun bibtex-author-fullname ()
+(defun ebibtex-author-fullname ()
   (save-excursion
     (bibtex-beginning-of-entry)
     (unless (bibtex-search-forward-field "fullname" t)
@@ -95,16 +86,14 @@ function `bibtex-insert-field'.")
             (goto-char (1- (point)))
             (insert fullField)))))))
 
-
-(defun bibtex-provide-fullname ()
+(defun ebibtex-provide-fullname ()
   (interactive)
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward "^@.*{\\(.*\\),.*$" (point-max) t)
-           (bibtex-author-fullname))))
+           (ebibtex-author-fullname))))
 
-
-(defun bibtex-duplicate-entries ()
+(defun ebibtex-duplicate-entries ()
   (save-excursion
     (goto-char (point-min))
     (let (( title "")
@@ -123,16 +112,14 @@ function `bibtex-insert-field'.")
       (message "%S" duplicates)
       duplicates)))
 
-
-(defun bibtex-show-duplicate-entry ()
+(defun ebibtex-show-duplicate-entry ()
   (interactive)
-  (let (( dup (car (bibtex-duplicate-entries))))
+  (let (( dup (car (ebibtex-duplicate-entries))))
     (if dup
       (let (( title "")
             ( i 0)
             ( pos1 (point-min))
-            ( pos2 (point-min))
-            beg end)
+            ( pos2 (point-min)))
         (goto-char pos1)
         (while (and (< i 2)
                     (re-search-forward "^@\\([a-zA-z]*\\){\\(.*\\),.*$"
@@ -154,8 +141,7 @@ function `bibtex-insert-field'.")
         (recenter 1))
       (message "No duplicate entries found."))))
 
-
-(defun bibtex-format-keys ()
+(defun ebibtex-format-keys ()
   (interactive)
   (let (( randomStr "aaaa")
         ( start 0)
@@ -184,13 +170,12 @@ function `bibtex-insert-field'.")
                 (bibtex-beginning-of-entry)
                 (end-of-line)
                 (insert (concat "\noldbibtexkey = \"" oldBibtexKey "\",")))))
-    (bibtex-provide-fullname)
+    (ebibtex-provide-fullname)
     (bibtex-reformat)
-    (bibtex-field-end-comma)
+    (ebibtex-field-end-comma)
     (message "Changed BibTeX keys: %s/%s" countMod countAll)))
 
-
-(defun bibtex-fix-key ()
+(defun ebibtex-fix-key ()
   (bibtex-beginning-of-entry)
   (unless (looking-at "@.*{[0-9]\\{4\\}[a-z]\\{4\\},")
     (let (( beg (point))
@@ -208,54 +193,43 @@ function `bibtex-insert-field'.")
       (end-of-line)
       (insert (concat "\noldbibtexkey = \"" oldBibtexKey "\",")))))
 
-
-(defun bibtex-reformat-key ()
+(defun ebibtex-reformat-key ()
   (bibtex-beginning-of-entry)
   (set-mark-command nil)
   (bibtex-end-of-entry)
   (setq deactivate-mark nil)
   (bibtex-reformat))
 
-
 (defun e/bibtex-entry-beginning-position ()
   (save-excursion
     (bibtex-beginning-of-entry)))
 
-
 (defun e/bibtex-entry-end-position ()
   (save-excursion
     (bibtex-end-of-entry)))
-
 
 (defun e/bibtex-replace-comment-symbol ()
   (replace-regexp-in-region "\\([^\\]\\)%" "\\1\\\\%"
                             (e/bibtex-entry-beginning-position)
                             (e/bibtex-entry-end-position)))
 
-
-(defun bibtex-format-key ()
+(defun ebibtex-format-key ()
   "Assume point somewhere inside the entry (at or after the
 at-symbol)."
   (interactive)
   (unless (find-nonascii-char)
-    (bibtex-fix-key)
+    (ebibtex-fix-key)
     (e/bibtex-replace-comment-symbol)
     (bibtex-clean-entry)
-    (bibtex-author-fullname)
+    (ebibtex-author-fullname)
     (bibtex-fill-entry)
-    (bibtex-field-end-comma-entry)))
-
-
-;;*** Function file handling - extended bibtex
-
+    (ebibtex-field-end-comma-entry)))
 
 (defvar ebibtex-library-root "/home/dan/library/archive/")
-
 
 (defvar ebibtex-entry-beginning-re "^\s*@\s*\\([a-zA-Z]+\\)\s*{\s*\\(.+?\\)\s*,"
   "Regexp for finding next entry beginning with entry type (book,
   article, etc.) and entry key.")
-
 
 (defun ebibtex-clean-value ( value)
   "Remove control characters from bibtex field value.
@@ -267,7 +241,6 @@ string with control characters removed."
         value (replace-regexp-in-string "\s\s+" " " value)
         value (replace-regexp-in-string "^\s*{+\\|^\s*\"" "" value)
         value (replace-regexp-in-string "}+\s*$\\|\"\s*$" "" value)))
-
 
 (defun ebibtex-export-entry ()
   "Export current bibtex entry to text file.
@@ -289,7 +262,6 @@ separted by a space."
                           (ebibtex-clean-value (cdr key-value))))))
       key)))
 
-
 (defun ebibtex-clean-tags ( tags)
   "Clean up string suitable for composing file names."
   (when tags
@@ -304,7 +276,6 @@ separted by a space."
               tags (replace-regexp-in-string "\\(\s+\\|^\s*\\)\\(and\\|a\\|at\\|by\\|its\\|on\\|from\\|to\\|with\\|in\\|of\\|for\\|the\\|und\\|der\\|die\\|das\\|bei\\|zur\\|uber\\)\s+" " " tags))))
     tags))
 
-
 (defun ebibtex-sort-tags ( tags)
   "Sort words in a string.
 
@@ -312,7 +283,6 @@ A string of TAGS is sorted alphabetically.  Returns the modified
 string."
   (when tags
     (string-join (sort (split-string tags) 'string-lessp) " ")))
-
 
 (defun ebibtex-entry-file-name ()
   "Compose a file name according to current bibtex entry.
@@ -342,7 +312,6 @@ jabref and tagspaces."
                              (downcase title))))
                          "].pdf")))))
 
-
 (defun ebibtex-locate ( pattern)
   "Provide list of files with names matching pattern.
 
@@ -363,7 +332,6 @@ part of the filename. Return relative paths to
         (setq files (cons (replace-regexp-in-string ebibtex-library-root "" path) files))))
     files))
 
-
 (defun ebibtex-set-exif ( targetpath)
   (save-excursion
     (bibtex-beginning-of-entry)
@@ -373,14 +341,12 @@ part of the filename. Return relative paths to
                                    bibtexpath " "
                                    (shell-quote-argument targetpath))))))
 
-
 (defun ebibtex-check-xmpmeta ( filename)
   (let (( output (shell-command-to-string
                   (concat "pdfinfo -meta "
                           (shell-quote-argument filename)))))
     (and (string-match "<x:xmpmeta" output)
          (string-match "</x:xmpmeta>" output))))
-
 
 (defun ebibtex-gs ( filename)
   (let* (( trash-dir (expand-file-name
@@ -394,13 +360,11 @@ part of the filename. Return relative paths to
                            (shell-quote-argument trash-file)
                            "> /dev/null"))))
 
-
 (defun ebibtex-gs-ask ( filename)
   (when (y-or-n-p (concat (unless (ebibtex-check-xmpmeta filename)
                             "WARNING: No <x:xmpmeta *>-tag found.\n")
                           "Rewrite " filename " by ghostcript?"))
     (ebibtex-gs filename)))
-    
 
 (defun ebibtex-rename-file ()
   (interactive)
@@ -455,26 +419,7 @@ part of the filename. Return relative paths to
             (setq info "No files found.")))))
     (message "%s" info)))
 
-
-;; (defun ebibtex-next-missing-file ()
-;;   (interactive)
-;;   (beginning-of-line)
-;;   (let ( type)
-;;     (when (looking-at ebibtex-entry-beginning-re)
-;;       (setq type (match-string 1)))
-;;     (message "type %s" type)
-;;     (while (and (re-search-forward ebibtex-entry-beginning-re (point-max) t)
-;;                 (if (not type)
-;;                     (ebibtex-locate (match-string 2))
-;;                   (if (string= type (match-string 1))
-;;                       (ebibtex-locate (match-string 2))
-;;                     'cycle))))))
-
-
-;;*** Function for inserting (making) new fields
-
-
-(defun bibtex-gather-field-names ()
+(defun ebibtex-gather-field-names ()
   (let ( all-fields)
     (dolist ( type bibtex-BibTeX-entry-alist)
       (dolist ( fields type)
@@ -484,18 +429,18 @@ part of the filename. Return relative paths to
     (reverse (delete-dups all-fields))))
 
 
-(defun bibtex-insert-field ()
+(defun ebibtex-insert-field ()
   "Insert new field in current BibTeX entry.
 
 This is a variant of function `bibtex-make-field' providing all
 possible fields regardless of the entry type. Custom field names
-can be added with the variable `bibtex-extra-fields'."
+can be added with the variable `ebibtex-extra-fields'."
   (interactive)
   (let (( fieldTag nil)
         ( valueColumn 17)
         ( all-fields (delete-dups
-                      (append (bibtex-gather-field-names)
-                              bibtex-extra-fields))))
+                      (append (ebibtex-gather-field-names)
+                              ebibtex-extra-fields))))
     (setq fieldTag (completing-read "Field tag name: "
                                     all-fields
                                     nil nil ""))
@@ -511,10 +456,6 @@ can be added with the variable `bibtex-extra-fields'."
     (insert "{},")
     (goto-char (- (point) 2))))
 
-
-;;*** Retrieving BibTex Entries from Web
-
-
 (defun ebibtex-entry-from-isbn ()
   (interactive)
   (let* (( isbn (read-string "ISBN: "))
@@ -523,10 +464,9 @@ can be added with the variable `bibtex-extra-fields'."
                  (url-insert-file-contents url)
                  (json-parse-buffer :object-type 'alist
                                     :array-type 'list)))
-         ( test (progn (message "%s" (parse-time-string (cdr (assoc 'publish_date json)))) "test"))
          ( title (cdr (assoc 'title json)))
          ( date (parse-time-string (cdr (assoc 'publish_date json))))
-         ( day (when (nth 3 date) (number-to-string (nth 3 date))))
+         ;; ( day (when (nth 3 date) (number-to-string (nth 3 date))))
          ( month (when (nth 4 date) (number-to-string (nth 4 date))))
          ( year (when (nth 5 date) (number-to-string (nth 5 date))))
          ( publisher (string-join (cdr (assoc 'publishers json)) ", "))
@@ -567,7 +507,6 @@ can be added with the variable `bibtex-extra-fields'."
                          "}\n")))
     (insert entry)))
 
-
 (defun ebibtex-entry-from-doi ()
   (interactive)
   (let* (( url-mime-accept-string "text/bibliography;style=bibtex")
@@ -578,16 +517,12 @@ can be added with the variable `bibtex-extra-fields'."
                    (buffer-substring (point-min) (point-max)))))
     (insert entry)
     (bibtex-fill-entry)))
-    
-
-;;*** Hook
 
 (add-hook 'bibtex-mode-hook
   (lambda ()
-    (define-key bibtex-mode-map "\C-ce" 'bibtex-format-key)
-    (define-key bibtex-mode-map "\C-ck" 'bibtex-format-keys)
-    (define-key bibtex-mode-map "\C-ci" 'bibtex-insert-field)))
-
+    (define-key bibtex-mode-map "\C-ce" 'ebibtex-format-key)
+    (define-key bibtex-mode-map "\C-ck" 'ebibtex-format-keys)
+    (define-key bibtex-mode-map "\C-ci" 'ebibtex-insert-field)))
 
 (provide 'bibtex-custom)
 
